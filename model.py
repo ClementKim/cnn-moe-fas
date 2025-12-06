@@ -41,14 +41,13 @@ class Model(torch.nn.Module):
         self.experts = nn.ModuleList(self.experts_list)
 
     def forward(self, x):
-        out = self.layer1(x)
-        out = self.layer2(out)
-        out = out.reshape(out.size(0), -1)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = x.reshape(x.size(0), -1)
 
-        routing_weights = self.router(out)
-
+        routing_weights = self.router(x)
         top_k_weights, top_k_indices = torch.topk(routing_weights, self.top_k, dim=1)
-        all_expert_outputs = torch.stack([expert(out) for expert in self.experts], dim=1) # (batch_size, num_experts, num_classes)
+        all_expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1) # (batch_size, num_experts, num_classes)
         top_k_expert_outputs = torch.gather(all_expert_outputs, 1, top_k_indices.unsqueeze(-1).expand(-1, -1, self.num_classes))
         weighted_outputs = top_k_expert_outputs * top_k_weights.unsqueeze(-1)
 
