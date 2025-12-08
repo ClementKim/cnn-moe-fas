@@ -10,6 +10,7 @@ if __name__ == "__main__":
     # argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type = int, default = 42)
+    parser.add_argument("--num_experts", type = int, default = 4)
     args = parser.parse_args()
 
     # for reproducibility
