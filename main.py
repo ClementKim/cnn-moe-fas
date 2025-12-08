@@ -46,7 +46,7 @@ if __name__ == "__main__":
     model = Model(num_classes = 10, num_experts = 10).to(device)
 
     criterion = torch.nn.CrossEntropyLoss()
-    oprimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
 
     for epoch in range(5):
         for i, (images, labels) in enumerate(train_loader):
@@ -56,9 +56,9 @@ if __name__ == "__main__":
             outputs = model(images)
             loss = criterion(outputs, labels)
 
-            oprimizer.zero_grad()
+            optimizer.zero_grad()
             loss.backward()
-            oprimizer.step()
+            optimizer.step()
 
         print(f"Epoch [{epoch + 1}/5], Loss: {loss.item():.4f}")
 

@@ -10,7 +10,7 @@ class Model(torch.nn.Module):
         self.top_k = top_k
 
         self.layer1 = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size = 5, stride = 1, padding = 2),
+            nn.Conv2d(3, 16, kernel_size = 5, stride = 1, padding = 2),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2, stride = 2)
@@ -24,7 +24,7 @@ class Model(torch.nn.Module):
         )
 
         self.router = nn.Sequential(
-            nn.Linear(7 * 7 * 32, num_experts),
+            nn.Linear(512, num_experts),
             nn.Softmax(dim = 1)
         )
 
@@ -44,7 +44,7 @@ class Model(torch.nn.Module):
 
         routing_weights = self.router(x)
         top_k_weights, top_k_indices = torch.topk(routing_weights, self.top_k, dim=1)
-        all_expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1) # (batch_size, num_experts, num_classes)
+        all_expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
         top_k_expert_outputs = torch.gather(all_expert_outputs, 1, top_k_indices.unsqueeze(-1).expand(-1, -1, self.num_classes))
         weighted_outputs = top_k_expert_outputs * top_k_weights.unsqueeze(-1)
 
