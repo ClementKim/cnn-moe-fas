@@ -10,7 +10,7 @@ class Model(torch.nn.Module):
         self.top_k = top_k
 
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size = 5, stride = 1, padding = 2),
+            nn.Conv2d(1, 16, kernel_size = 5, stride = 1, padding = 2),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2, stride = 2)
@@ -24,7 +24,7 @@ class Model(torch.nn.Module):
         )
 
         self.router = nn.Sequential(
-            nn.Linear(512, num_experts),
+            nn.Linear(7*7*32, num_experts),
             nn.Softmax(dim = 1)
         )
 
