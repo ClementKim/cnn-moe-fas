@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# conda activate js_dom
-source .venv/bin/activate
+conda activate cnn-moe
+# source .venv/bin/activate
 
 for expert in 2 4 8 16 32 64 128 256 512 1024; do
     for seed in 42 43 44 777 911; do

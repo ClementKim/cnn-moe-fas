@@ -4,7 +4,8 @@ import random
 import numpy as np
 import torchvision
 
-from model import Model
+from preprocessing import custum_dataset
+from model import Backbone, ClassificationHead, IdentificationHead, VerificationHead
 
 if __name__ == "__main__":
     # argument parsing
@@ -25,15 +26,10 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
 
     ## Testing model
-    train_dataset = torchvision.datasets.MNIST(root = "./data", 
-                                               train = True, 
-                                               transform = torchvision.transforms.ToTensor(), 
-                                               download = True)
-    
-    test_dataset = torchvision.datasets.MNIST(root = "./data", 
-                                              train = False, 
-                                              transform = torchvision.transforms.ToTensor(), 
-                                              download = True)
+    train_dataset, val_dataset, test_dataset = custum_dataset(opt = "other", seed = args.seed)
+    # train_dataset, val_dataset, test_dataset = custum_dataset(opt = "classification", seed = args.seed)
+
+    exit(1)
     
     train_loader = torch.utils.data.DataLoader(dataset = train_dataset,
                                                batch_size = 64,
@@ -43,7 +39,10 @@ if __name__ == "__main__":
                                               batch_size = 64,
                                               shuffle = False)
     
-    model = Model(num_classes = 10, num_experts = 10).to(device)
+    model = Backbone(num_classes = 2, num_experts = args.num_experts).to(device)
+    identification = IdentificationHead(input_size = 32, num_classes = 2).to(device)
+    verification = VerificationHead(input_size = 32, num_classes = 2).to(device)
+    classification = ClassificationHead(input_size = 32, num_classes = 2).to(device)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
