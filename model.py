@@ -1,9 +1,10 @@
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class Backbone(torch.nn.Module):
-    def __init__(self, input_channels = 3, embed_dim = 128, num_experts = 4, top_k = 2):
+class Backbone(nn.Module):
+    def __init__(self, input_channels = 36, embed_dim = 128, num_experts = 4, top_k = 2):
         super(Backbone, self).__init__()
 
         feature_flat_dim = 7 * 7 * 32
@@ -28,14 +29,14 @@ class Backbone(torch.nn.Module):
         self.adaptive_pool = nn.AdaptiveAvgPool2d((7, 7))
 
         self.router = nn.Sequential(
-            nn.Linear(feature_flat_dim, num_experts),
-            nn.Softmax(dim = 1)
+            nn.Linear(feature_flat_dim, num_experts)
         )
 
         self.experts = nn.ModuleList([
               nn.Sequential(
                   nn.Linear(feature_flat_dim, 256),
                   nn.ReLU(),
+                  nn.Dropout(0.2),
                   nn.Linear(256, self.embed_dim)
               )
               for _ in range(num_experts)
@@ -47,8 +48,8 @@ class Backbone(torch.nn.Module):
         x = x.view(x.size(0), -1) # flatten
 
         routing_logits = self.router[0](x) # before softmax
-
         routing_weights = F.softmax(routing_logits, dim = 1)
+
         top_k_weights, top_k_indices = torch.topk(routing_weights, self.top_k, dim = 1)
 
         top_k_weights = top_k_weights / top_k_weights.sum(dim = 1, keepdim = True)
@@ -66,26 +67,46 @@ class Backbone(torch.nn.Module):
 
         return final_embedding
 
-class ClassificationHead(torch.nn.Module):
-    def __init__(self, embed_dim, num_classes):
+class ClassificationHead(nn.Module):
+    def __init__(self, input_dim, num_classes):
         super(ClassificationHead, self).__init__()
-        self.fc = nn.Linear(embed_dim, num_classes)
+        self.fc = nn.Linear(input_dim, num_classes)
 
     def forward(self, x):
         return self.fc(x)
+
     
-class IdentificationHead(torch.nn.Module):
-    def __init__(self, embed_dim, id_classes):
-        super(IdentificationHead, self).__init__()
-        self.fc = nn.Linear(embed_dim, id_classes)
+class ArcFaceHead(nn.Module):
+    def __init__(self, in_features, out_features, s = 30.0, m = 0.50):
+        super(ArcFaceHead, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.s = s
+        self.m = m
 
-    def forward(self, x):
-        return self.fc(x)
-    
-class VerificationHead(torch.nn.Module):
-    def __init__(self, embed_dim, ver_classes):
-        super(VerificationHead, self).__init__()
-        self.fc = nn.Linear(embed_dim, ver_classes)
+        self.weight = nn.Parameter(torch.FloatTensor(out_features, in_features))
+        nn.init.xavier_uniform_(self.weight)
 
-    def forward(self, x):
-        return self.fc(x)
+        self.cos_m = math.cos(m)
+        self.sin_m = math.sin(m)
+
+        self.th = math.cos(math.pi - m)
+        self.mm = math.sin(math.pi - m) * m
+
+    def forward(self, x, label):
+        cosine = F.linear(F.normalize(x), F.normalize(self.weight))
+        cosine = torch.clamp(cosine, -1.0 + 1e-7, 1.0 - 1e-7)
+
+        sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
+        phi = cosine * self.cos_m - sine * self.sin_m
+
+        phi = torch.where(cosine > self.th, phi, cosine - self.mm)
+
+        one_hot = torch.zeros(cosine.size(), device = x.device)
+        one_hot.scatter_(1, label.view(-1, 1).long(), 1)
+
+        output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
+
+        output *= self.s
+
+        return output

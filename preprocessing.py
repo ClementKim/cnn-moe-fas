@@ -1,84 +1,109 @@
 import os
-import random
+import cv2
 import torch
+import random
+import numpy as np
+import PIL.Image as Image
 import torch.utils.data as data
 
 from random import shuffle
+from itertools import product
 
-class ClassificationDataset(data.Dataset):
+def hsi_crop(img):
+    img_raw = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
+    h, w = img_raw.shape
+
+    cy, cx = int(h / 2), int(w / 2)
+    sz_step = 300
+
+    lt = (cx - 3 * sz_step, cy - 3 * sz_step)
+
+    anch_x = [lt[0] + sz_step * i for i in range(6)]
+    anch_y = [lt[1] + sz_step * i for i in range(6)]
+
+    anchors = [(x, y) for (y, x) in product(anch_y, anch_x)]
+
+    imgs = []
+    for idx, (x, y) in enumerate(anchors):
+        crop_img = img_raw[y : y + sz_step, x : x + sz_step]
+
+        imgs.append(crop_img)
+
+    return imgs
+
+def hsi_preprocessing(image_path):
+    imgs = hsi_crop(image_path)
+    cube = np.stack(imgs, axis=0)
+
+    tensor = torch.from_numpy(cube).float()
+    tensor /= 255.0
+
+    return tensor
+
+class CustumDataset(data.Dataset):
     def __init__(self, x):
-        super(ClassificationDataset,self).__init__()
+        super(CustumDataset,self).__init__()
 
         self.x = x
-        self.y = ["live" if "live" in item else "spoof" for item in self.x]
+        self.label = [3 if "iphone" in item else 2 if "ipad" in item else 1 if "paper" in item else 0 for item in self.x]
+        self.id = [int(item.split("/")[-3][-3:]) - 1 for item in self.x]
 
     def __getitem__(self, index):
-        return self.x[index], self.y[index]
+        img_path = self.x[index]
+        label = self.label[index]
+        id = self.id[index]
+
+        img_tensor = hsi_preprocessing(img_path)
+
+        return img_tensor, label, id
     
     def __len__(self):
         return len(self.x)
     
-class IdDataset(data.Dataset):
-    def __init__(self, x):
-        super(IdDataset,self).__init__()
-
-        self.x = x
-        self.y = [item.split("/")[-3] for item in self.x]
-
-    def __getitem__(self, index):
-        return self.x[index], self.y[index]
-    
-    def __len__(self):
-        return len(self.x)
-    
-def custum_dataset(opt, seed):
-    root = "./data/CelebA_Spoof/Data"
-    live = []
-    spoof = []
-
+def construction(seed):
+    root = "./fas_project/dataset/hsi_raw"
     random.seed(seed)
-    
-    for opt in ["train", "test"]:
-        for num in os.listdir(os.path.join(root, opt)):
-            for img in os.listdir(os.path.join(root, opt, num, "live")):
-                if img.endswith(".jpg") or img.endswith(".png"):
-                    live.append(os.path.join(root, opt, num, "live", img))
 
-            for img in os.listdir(os.path.join(root, opt, num, "spoof")):
-                if img.endswith(".jpg") or img.endswith(".png"):
-                    spoof.append(os.path.join(root, opt, num, "spoof", img))
-
-    shuffle(live)
-    shuffle(spoof)
-    
     train = []
     val = []
     test = []
 
-    train.extend(live[:int(0.6*len(live))])
-    train.extend(spoof[:int(0.6*len(spoof))])
+    for subject_num in os.listdir(root):
+        live = [i for i in range(1, 67)]
+        shuffle(live)
 
-    val.extend(live[int(0.6*len(live)):int(0.8*len(live))])
-    val.extend(spoof[int(0.6*len(spoof)):int(0.8*len(spoof))])
+        iphone = [i for i in range(67, 72)]
+        shuffle(iphone)
 
-    test.extend(live[int(0.8*len(live)):])
-    test.extend(spoof[int(0.8*len(spoof)):])
+        ipad = [i for i in range(72, 77)]
+        shuffle(ipad)
+
+        paper = [i for i in range(77, 82)]
+        shuffle(paper)
+
+        target_live_dir = os.path.join(root, subject_num, "real")
+        target_fake_dir = os.path.join(root, subject_num, "fake")
+
+        train.extend([f"{os.path.join(target_live_dir, str(i).zfill(4) + '_hsi.jpg')}" for i in live[:int(len(live)*0.6)]])
+        train.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_iphone.jpg')}" for i in iphone[:int(len(iphone)*0.6)]])
+        train.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_ipad.jpg')}" for i in ipad[:int(len(ipad)*0.6)]])
+        train.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_paper.jpg')}" for i in paper[:int(len(paper)*0.6)]])
+
+        val.extend([f"{os.path.join(target_live_dir, str(i).zfill(4) + '_hsi.jpg')}" for i in live[int(len(live)*0.6):int(len(live)*0.8)]])
+        val.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_iphone.jpg')}" for i in iphone[int(len(iphone)*0.6):int(len(iphone)*0.8)]])
+        val.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_ipad.jpg')}" for i in ipad[int(len(ipad)*0.6):int(len(ipad)*0.8)]])
+        val.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_paper.jpg')}" for i in paper[int(len(paper)*0.6):int(len(paper)*0.8)]])
+
+        test.extend([f"{os.path.join(target_live_dir, str(i).zfill(4) + '_hsi.jpg')}" for i in live[int(len(live)*0.8):]])
+        test.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_iphone.jpg')}" for i in iphone[int(len(iphone)*0.8):]])
+        test.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_ipad.jpg')}" for i in ipad[int(len(ipad)*0.8):]])
+        test.extend([f"{os.path.join(target_fake_dir, str(i).zfill(4) + '_hsi_paper.jpg')}" for i in paper[int(len(paper)*0.8):]])
 
     shuffle(train)
     shuffle(val)
     shuffle(test)
 
-    if opt == "classification":
-        train_dataset = ClassificationDataset(train)
-        val_dataset = ClassificationDataset(val)
-        test_dataset = ClassificationDataset(test)
-
-    else:
-        train_dataset = IdDataset(train)
-        val_dataset = IdDataset(val)
-        test_dataset = IdDataset(test)
-
-    return train_dataset, val_dataset, test_dataset
+    return CustumDataset(train), CustumDataset(val), CustumDataset(test)
 
 if __name__ == "__main__":
-    custum_dataset(seed=42)
+    construction(seed=42)
