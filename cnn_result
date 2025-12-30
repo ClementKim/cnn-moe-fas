@@ -1,0 +1,148 @@
+Using device: cuda
+Epoch [1/20] Results:
+--------------------------------------------------
+ APCER:      33.33%
+ NPCER:      10.40%
+ ACER:       21.87%
+ Train Loss: 15.6091
+ Val Loss:   15.6280 | Val Acc (Arc): 0.00%
+Epoch [2/20] Results:
+--------------------------------------------------
+ APCER:      29.01%
+ NPCER:      0.00%
+ ACER:       14.51%
+ Train Loss: 14.4762
+ Val Loss:   14.9501 | Val Acc (Arc): 0.00%
+Epoch [3/20] Results:
+--------------------------------------------------
+ APCER:      0.00%
+ NPCER:      11.40%
+ ACER:       5.70%
+ Train Loss: 13.6170
+ Val Loss:   14.2485 | Val Acc (Arc): 0.00%
+Epoch [4/20] Results:
+--------------------------------------------------
+ APCER:      0.00%
+ NPCER:      5.70%
+ ACER:       2.85%
+ Train Loss: 12.7781
+ Val Loss:   13.0913 | Val Acc (Arc): 0.46%
+Epoch [5/20] Results:
+--------------------------------------------------
+ APCER:      14.20%
+ NPCER:      12.96%
+ ACER:       13.58%
+ Train Loss: 11.3925
+ Val Loss:   11.7621 | Val Acc (Arc): 6.37%
+Epoch [6/20] Results:
+--------------------------------------------------
+ APCER:      17.28%
+ NPCER:      2.85%
+ ACER:       10.07%
+ Train Loss: 10.1485
+ Val Loss:   11.8779 | Val Acc (Arc): 6.13%
+Epoch [7/20] Results:
+--------------------------------------------------
+ APCER:      97.53%
+ NPCER:      0.00%
+ ACER:       48.77%
+ Train Loss: 8.9760
+ Val Loss:   9.4733 | Val Acc (Arc): 15.16%
+Epoch [8/20] Results:
+--------------------------------------------------
+ APCER:      90.12%
+ NPCER:      0.00%
+ ACER:       45.06%
+ Train Loss: 7.9647
+ Val Loss:   8.9637 | Val Acc (Arc): 18.75%
+Epoch [9/20] Results:
+--------------------------------------------------
+ APCER:      100.00%
+ NPCER:      0.00%
+ ACER:       50.00%
+ Train Loss: 7.0934
+ Val Loss:   7.6243 | Val Acc (Arc): 31.94%
+Epoch [10/20] Results:
+--------------------------------------------------
+ APCER:      98.77%
+ NPCER:      0.00%
+ ACER:       49.38%
+ Train Loss: 6.5321
+ Val Loss:   6.8803 | Val Acc (Arc): 34.72%
+Epoch [11/20] Results:
+--------------------------------------------------
+ APCER:      99.38%
+ NPCER:      0.00%
+ ACER:       49.69%
+ Train Loss: 5.5871
+ Val Loss:   6.2691 | Val Acc (Arc): 38.66%
+Epoch [12/20] Results:
+--------------------------------------------------
+ APCER:      100.00%
+ NPCER:      0.00%
+ ACER:       50.00%
+ Train Loss: 4.9256
+ Val Loss:   5.2573 | Val Acc (Arc): 47.45%
+Epoch [13/20] Results:
+--------------------------------------------------
+ APCER:      100.00%
+ NPCER:      0.00%
+ ACER:       50.00%
+ Train Loss: 4.3424
+ Val Loss:   5.6869 | Val Acc (Arc): 35.65%
+Epoch [14/20] Results:
+--------------------------------------------------
+ APCER:      100.00%
+ NPCER:      0.00%
+ ACER:       50.00%
+ Train Loss: 3.5604
+ Val Loss:   4.0961 | Val Acc (Arc): 57.06%
+Epoch [15/20] Results:
+--------------------------------------------------
+ APCER:      100.00%
+ NPCER:      0.00%
+ ACER:       50.00%
+ Train Loss: 2.9941
+ Val Loss:   3.3374 | Val Acc (Arc): 66.20%
+Epoch [16/20] Results:
+--------------------------------------------------
+ APCER:      99.38%
+ NPCER:      0.00%
+ ACER:       49.69%
+ Train Loss: 2.5850
+ Val Loss:   3.1184 | Val Acc (Arc): 70.25%
+Epoch [17/20] Results:
+--------------------------------------------------
+ APCER:      100.00%
+ NPCER:      0.00%
+ ACER:       50.00%
+ Train Loss: 2.4521
+ Val Loss:   3.0454 | Val Acc (Arc): 71.76%
+Epoch [18/20] Results:
+--------------------------------------------------
+ APCER:      97.53%
+ NPCER:      0.00%
+ ACER:       48.77%
+ Train Loss: 2.1950
+ Val Loss:   2.7755 | Val Acc (Arc): 74.88%
+Epoch [19/20] Results:
+--------------------------------------------------
+ APCER:      99.38%
+ NPCER:      0.00%
+ ACER:       49.69%
+ Train Loss: 2.2298
+ Val Loss:   2.7105 | Val Acc (Arc): 75.93%
+Epoch [20/20] Results:
+--------------------------------------------------
+ APCER:      99.38%
+ NPCER:      0.00%
+ ACER:       49.69%
+ Train Loss: 2.1199
+ Val Loss:   2.8888 | Val Acc (Arc): 72.57%
+Test Results:
+ APCER: 97.53%
+ NPCER: 0.00%
+ ACER: 48.77%
+ Accuracy (classification): 82.79%
+ Accuracy (arcface): 73.75%
+FP: 0, FN: 158, TP: 4, TN: 756

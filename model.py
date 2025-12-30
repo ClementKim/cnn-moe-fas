@@ -4,10 +4,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Backbone(nn.Module):
-    def __init__(self, input_channels = 36, embed_dim = 128, num_experts = 4, top_k = 2):
+    def __init__(self, input_channels = 36, embed_dim = 256, num_experts = 8, top_k = 2):
         super(Backbone, self).__init__()
 
-        feature_flat_dim = 7 * 7 * 32
+        feature_flat_dim = 7 * 7 * 128
         
         self.input_channels = input_channels
         self.embed_dim = embed_dim
@@ -15,13 +15,18 @@ class Backbone(nn.Module):
         self.top_k = top_k
 
         self.features = nn.Sequential(
-            nn.Conv2d(input_channels, 16, kernel_size = 5, stride = 1, padding = 2),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(input_channels, 32, kernel_size = 5, stride = 1, padding = 2),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
 
-            nn.Conv2d(16, 32, kernel_size = 5, stride = 1, padding = 2),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 64, kernel_size = 5, stride = 1, padding = 2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
+
+            nn.Conv2d(64, 128, kernel_size = 5, stride = 1, padding = 2),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size = 2, stride = 2)
         )
@@ -34,10 +39,10 @@ class Backbone(nn.Module):
 
         self.experts = nn.ModuleList([
               nn.Sequential(
-                  nn.Linear(feature_flat_dim, 256),
+                  nn.Linear(feature_flat_dim, 512),
                   nn.ReLU(),
                   nn.Dropout(0.2),
-                  nn.Linear(256, self.embed_dim)
+                  nn.Linear(512, self.embed_dim)
               )
               for _ in range(num_experts)
         ])

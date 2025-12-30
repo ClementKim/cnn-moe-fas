@@ -12,10 +12,10 @@ from model import ClassificationHead, ArcFaceHead
 if __name__ == "__main__":
     # argument parsing
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type = int, default = 42)
+    parser.add_argument("--seed", type = int, default = 43)
     parser.add_argument("--batch", type = int, default = 64)
-    parser.add_argument("--cls_weight", type = float, default = 0.5)
-    parser.add_argument("--arc_weight", type = float, default = 0.7)
+    parser.add_argument("--cls_weight", type = float, default = 0.8)
+    parser.add_argument("--arc_weight", type = float, default = 0.8)
     args = parser.parse_args()
 
     # for reproducibility
@@ -47,7 +47,7 @@ if __name__ == "__main__":
                                               shuffle = False,
                                               num_workers = 4)
     
-    model = Backbone(input_channels = 36, embed_dim = 128, num_experts = args.num_experts).to(device)
+    model = Backbone(input_channels = 36, embed_dim = 128).to(device)
     classification = ClassificationHead(input_dim = 128, num_classes = 4).to(device)
     archead = ArcFaceHead(in_features = 128, out_features = 54, s = 30.0, m = 0.50).to(device)
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     lambda_cls = args.cls_weight
     lambda_arc = args.arc_weight
-    epochs = 10
+    epochs = 20
 
     for ep in range(epochs):
         model.train()
@@ -100,10 +100,12 @@ if __name__ == "__main__":
         archead.eval()
         
         val_loss = 0.0
-        val_correct_cls = 0
+        val_correct_ids = 0
         val_total = 0
         val_steps = 0
-        
+
+        FN, FP = 0, 0
+        TP, TN = 0, 0
         with torch.no_grad():
             for images, labels, ids in tqdm(val_loader, desc=f"Epoch [{ep+1}/{epochs}] Val"):
                 images = images.to(device)
@@ -124,26 +126,49 @@ if __name__ == "__main__":
                 val_steps += 1
                 
                 # Calculate validation accuracy for classification
-                _, predicted = torch.max(out_cls.data, 1)
-                val_total += labels.size(0)
-                val_correct_cls += (predicted == labels).sum().item()
+                _, predicted_cls = torch.max(out_cls.data, 1)
+                _, predicted_arc = torch.max(out_arc.data, 1)
+
+                is_attack_label = (labels != 0)
+                is_real_label = (labels == 0)
+
+                is_attack_pred = (predicted_cls != 0)
+                is_real_pred = (predicted_cls == 0)
+                
+                FN += (is_attack_label & is_real_pred).sum().item()
+                FP += (is_real_label & is_attack_pred).sum().item()
+                TP += (is_attack_label & is_attack_pred).sum().item()
+                TN += (is_real_label & is_real_pred).sum().item()
+
+                val_total += ids.size(0)
+                val_correct_ids += (predicted_arc == ids).sum().item()
+
+        apcer = FN / (TP + FN) if (TP + FN) > 0 else 0
+        NPCER = FP / (FP + TN) if (FP + TN) > 0 else 0
+        ACER = (apcer + NPCER) / 2
 
         avg_val_loss = val_loss / val_steps
-        val_acc = 100 * val_correct_cls / val_total
+        val_acc = 100 * val_correct_ids / val_total
         
         print(f"Epoch [{ep+1}/{epochs}] Results:")
-        print(f"  Train Loss: {avg_train_loss:.4f}")
-        print(f"  Val Loss:   {avg_val_loss:.4f} | Val Acc (Cls): {val_acc:.2f}%")
         print("-" * 50)
+        print(f" APCER:      {apcer*100:.2f}%")
+        print(f" NPCER:      {NPCER*100:.2f}%")
+        print(f" ACER:       {ACER*100:.2f}%")
+        print(f" Train Loss: {avg_train_loss:.4f}")
+        print(f" Val Loss:   {avg_val_loss:.4f} | Val Acc (Arc): {val_acc:.2f}%")
 
 
     model.eval()
     classification.eval()
     archead.eval()
     with torch.no_grad():
-        correct_label = 0
+        FN, FP = 0, 0
+        TP, TN = 0, 0
+
+        correct_cls = 0
+        total_cls = 0
         correct_ids = 0
-        total_label = 0
         total_ids = 0
         for images, labels, ids in tqdm(test_loader, desc = "Testing model"):
             images = images.to(device)
@@ -158,11 +183,31 @@ if __name__ == "__main__":
             _, predicted_cls = torch.max(out_cls.data, 1)
             _, predicted_arc = torch.max(out_arc.data, 1)
             
-            total_label += labels.size(0)
-            correct_label += (predicted_cls == labels).sum().item()
+            is_attack_label = (labels != 0)
+            is_real_label = (labels == 0)
+
+            is_attack_pred = (predicted_cls != 0)
+            is_real_pred = (predicted_cls == 0)
+
+            FN += (is_attack_label & is_real_pred).sum().item()
+            FP += (is_real_label & is_attack_pred).sum().item()
+            TP += (is_attack_label & is_attack_pred).sum().item()
+            TN += (is_real_label & is_real_pred).sum().item()
             
+            total_cls += labels.size(0)
             total_ids += ids.size(0)
+            correct_cls += (predicted_cls == labels).sum().item()
             correct_ids += (predicted_arc == ids).sum().item()
 
-        print(f"Test Accuracy (classification): {100 * correct_label / total_label:.2f}%")
-        print(f"Test Accuracy (arcface): {100 * correct_ids / total_ids:.2f}%")
+        apcer = FN / (TP + FN) if (TP + FN) > 0 else 0
+        NPCER = FP / (FP + TN) if (FP + TN) > 0 else 0
+        ACER = (apcer + NPCER) / 2
+
+        print(f"Test Results:")
+        print(f" APCER: {apcer*100:.2f}%")
+        print(f" NPCER: {NPCER*100:.2f}%")
+        print(f" ACER: {ACER*100:.2f}%")
+        print(f" Accuracy (classification): {100 * correct_cls / total_cls:.2f}%")
+        print(f" Accuracy (arcface): {100 * correct_ids / total_ids:.2f}%")
+
+        print(f"FP: {FP}, FN: {FN}, TP: {TP}, TN: {TN}")
