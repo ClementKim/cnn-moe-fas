@@ -1,61 +1,158 @@
-# CNN vs. Mixture of Experts for Face Anti-Spoofing
+# HSI-based CNN-MoE Framework for Face Anti-Spoofing and Identification
 
-This project implements and compares a standard Convolutional Neural Network (CNN) with a Mixture of Experts (MoE) model for a Face Anti-Spoofing (FAS) task. The models are trained to distinguish between live subjects and various spoofing attacks (e.g., photos on iPhones, iPads, or paper). Additionally, the models learn to identify the subject's ID using ArcFace loss.
+This repository implements the **CNN-MoE FAS** framework, a deep learning approach for Hyperspectral Imaging (HSI)-based Face Anti-Spoofing (FAS) and Identity Recognition.
+
+As described in the associated research, HSI data provides useful material and spectral clues for distinguishing real skin from fake mediums (e.g., masks, paper). However, high dimensionality and redundancy in HSI data increase computational costs. This project solves this by combining a VGG-style CNN backbone with a **Sparsely-Gated Mixture-of-Experts (MoE)** module.
+
+## Key Features
+
+* 
+**Multi-Task Learning:** Simultaneously performs **Face Anti-Spoofing (Live/Spoof)** and **Face Identification**.
+
+
+* 
+**Sparsely-Gated MoE:** Uses a router to activate only the Top-k experts per sample, reducing computation while increasing model expressiveness.
+
+
+* 
+**ArcFace Loss:** Utilizes ArcFace loss for robust identity verification alongside Cross-Entropy loss for spoof detection.
+
+
+* 
+**Spatial-Spectral Stacking:** Preprocesses HSI images by cropping them into 36 patches and stacking them as channels to capture material properties.
+
+
 
 ## Project Structure
 
 ```
 .
-├── cnn.py              # Baseline CNN model architecture
-├── main_cnn.py         # Main script to train and evaluate the CNN model
-├── main_moe.py         # Main script to train and evaluate the MoE model
-├── model.py            # MoE model architecture, ClassificationHead, and ArcFaceHead
-├── preprocessing.py    # Data loading and preprocessing scripts
-├── README.md           # This file
-├── fas_project/        # Project data
-└── results/            # Directory to save model results
-    ├── cnn_result
-    └── moe_result
+├── cnn.py  # Baseline VGG-style CNN backbone [cite: 21]
+├── main_cnn.py         # Training script for the baseline CNN
+├── main_moe.py         # Training script for the proposed CNN-MoE model
+├── model.py            # MoE Backbone, Router, ClassificationHead, and ArcFaceHead [cite: 30, 36]
+├── preprocessing.py    # HSI cropping (6x6 grid) and dataset construction [cite: 20]
+└── results/            # Saved model checkpoints and logs
+
 ```
 
-## Key Files
+## Methodology
 
-*   `preprocessing.py`: This script handles loading and preprocessing the Hyperspectral Imaging (HSI) data from the `./fas_project/dataset/hsi_raw` directory. It creates `Dataset` objects for training, validation, and testing.
-*   `cnn.py`: Defines the architecture of the baseline CNN model.
-*   `model.py`: Contains the implementation of the Mixture of Experts (MoE) model, as well as the `ClassificationHead` and `ArcFaceHead` used by both the CNN and MoE models.
-*   `main_cnn.py`: The main script for training and evaluating the baseline CNN model. It uses a combination of standard cross-entropy loss for classification and ArcFace loss for subject identification.
-*   `main_moe.py`: The main script for training and evaluating the MoE model. It follows a similar training and evaluation procedure as `main_cnn.py`.
+### 1. Input & Preprocessing
+
+The model does not use the raw HSI image directly. Instead, it employs a patch-based approach:
+
+* The raw HSI image is cropped into **36 non-overlapping patches** (6x6 grid).
+
+
+* These patches are stacked along the channel dimension, resulting in a tensor input of shape `(Batch, 36, H, W)`.
+
+
+* This is handled in `preprocessing.py` via `hsi_crop` and `hsi_preprocessing`.
+
+### 2. Architecture
+
+* 
+**Backbone:** A shared VGG-style CNN extracts a feature vector (size ).
+
+
+* 
+**Router (MoE):** A lightweight gating network calculates routing probabilities and selects the **Top-k** (default ) experts.
+
+
+* **Heads:**
+* 
+**Classification Head:** Detects 4 classes: Live (Real), Paper, iPhone, iPad.
+
+
+* 
+**ArcFace Head:** Learns identity embeddings for subject verification.
+
+
+
+
+
+## Dataset
+
+The project utilizes a custom HSI dataset constructed for this research:
+
+* **Subjects:** 54 individuals.
+* **Images:** 4,374 images total.
+* 
+**Conditions:** Various lighting (Fluorescent, LED) and accessories (Mask, Hat, Sunglasses).
+
+
+* 
+**Attacks:** Paper, iPhone, and iPad spoofing attacks.
+
+
 
 ## Usage
 
-To train and evaluate the models, run the respective main scripts:
+### Prerequisites
 
-### CNN Model
+* Python  3.10.14
+* PyTorch 2.9.1
+* OpenCV  4.12.0.88
+* NumPy   2.2.6
+
+### Training
+
+To reproduce the results, use the provided `main` scripts. The default seed is set to `43` as per the paper.
+
+**1. Train Proposed MoE Model**
 
 ```bash
-python main_cnn.py --seed 42 --batch 64 --cls_weight 0.8 --arc_weight 0.8
+python main_moe.py \
+    --seed 43 \
+    --num_experts 4 \
+    --batch 64 \
+    --cls_weight 0.8 \
+    --arc_weight 0.8
+
 ```
 
-### MoE Model
+**2. Train Baseline CNN Model**
 
 ```bash
-python main_moe.py --seed 42 --num_experts 4 --batch 64 --cls_weight 0.8 --arc_weight 0.8
+python main_cnn.py \
+    --seed 43 \
+    --batch 64 \
+    --cls_weight 0.8 \
+    --arc_weight 0.8
+
 ```
 
 ### Arguments
 
-*   `--seed`: Random seed for reproducibility.
-*   `--batch`: Batch size for training and evaluation.
-*   `--cls_weight`: Weight for the classification loss.
-*   `--arc_weight`: Weight for the ArcFace loss.
-*   `--num_experts` (for MoE model only): The number of experts in the Mixture of Experts model.
+* 
+`--seed`: Random seed (default: 43).
 
-## Evaluation
 
-The models are evaluated using the following metrics:
+* 
+`--num_experts`: Number of experts in the MoE layer (default: 4).
 
-*   **APCER** (Attack Presentation Classification Error Rate)
-*   **NPCER** (Normal Presentation Classification Error Rate)
-*   **ACER** (Average Classification Error Rate)
 
-The scripts will print these metrics to the console after training and evaluation are complete.
+* 
+`--cls_weight`: Weight for classification loss ().
+
+
+* 
+`--arc_weight`: Weight for identity ArcFace loss ().
+
+
+
+## Experimental Results
+
+The proposed CNN-MoE framework significantly outperforms the baseline CNN, particularly in reducing the Attack Presentation Classification Error Rate (APCER).
+
+| Model | APCER | NPCER | ACER | Cls Accuracy | ID Accuracy |
+| --- | --- | --- | --- | --- | --- |
+| **Baseline CNN** | 97.53% | 0.00% | 48.77% | 82.79% | 73.75% |
+| **Ours (CNN-MoE)** | **12.96%** | **0.00%** | **6.48%** | **93.68%** | **75.93%** |
+
+Data sourced from Table 1 of the associated paper.
+
+## Acknowledgments
+
+This research was supported by the Ministry of Science and ICT (MSIT), Korea, under the ITRC support program (IITP-2026-RS-2021-1211835) and the National Research Foundation of Korea (NRF) (RS-2026-22932973).
