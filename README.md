@@ -6,20 +6,16 @@ As described in the associated research, HSI data provides useful material and s
 
 ## Key Features
 
-* 
-**Multi-Task Learning:** Simultaneously performs **Face Anti-Spoofing (Live/Spoof)** and **Face Identification**.
+* **Multi-Task Learning:** Simultaneously performs **Face Anti-Spoofing (Live/Spoof)** and **Face Identification**.
 
 
-* 
-**Sparsely-Gated MoE:** Uses a router to activate only the Top-k experts per sample, reducing computation while increasing model expressiveness.
+* **Sparsely-Gated MoE:** Uses a router to activate only the Top-k experts per sample, reducing computation while increasing model expressiveness.
 
 
-* 
-**ArcFace Loss:** Utilizes ArcFace loss for robust identity verification alongside Cross-Entropy loss for spoof detection.
+* **ArcFace Loss:** Utilizes ArcFace loss for robust identity verification alongside Cross-Entropy loss for spoof detection.
 
 
-* 
-**Spatial-Spectral Stacking:** Preprocesses HSI images by cropping them into 36 patches and stacking them as channels to capture material properties.
+* **Spatial-Spectral Stacking:** Preprocesses HSI images by cropping them into 36 patches and stacking them as channels to capture material properties.
 
 
 
@@ -52,21 +48,16 @@ The model does not use the raw HSI image directly. Instead, it employs a patch-b
 
 ### 2. Architecture
 
-* 
-**Backbone:** A shared VGG-style CNN extracts a feature vector (size ).
+* **Backbone:** A shared VGG-style CNN extracts a feature vector (size ).
 
 
-* 
-**Router (MoE):** A lightweight gating network calculates routing probabilities and selects the **Top-k** (default ) experts.
+* **Router (MoE):** A lightweight gating network calculates routing probabilities and selects the **Top-k** (default ) experts.
 
 
 * **Heads:**
-* 
-**Classification Head:** Detects 4 classes: Live (Real), Paper, iPhone, iPad.
+  * **Classification Head:** Detects 4 classes: Live (Real), Paper, iPhone, iPad.
 
-
-* 
-**ArcFace Head:** Learns identity embeddings for subject verification.
+  * **ArcFace Head:** Learns identity embeddings for subject verification.
 
 
 
@@ -78,12 +69,10 @@ The project utilizes a custom HSI dataset constructed for this research:
 
 * **Subjects:** 54 individuals.
 * **Images:** 4,374 images total.
-* 
-**Conditions:** Various lighting (Fluorescent, LED) and accessories (Mask, Hat, Sunglasses).
+* **Conditions:** Various lighting (Fluorescent, LED) and accessories (Mask, Hat, Sunglasses).
 
 
-* 
-**Attacks:** Paper, iPhone, and iPad spoofing attacks.
+* **Attacks:** Paper, iPhone, and iPad spoofing attacks.
 
 
 
@@ -125,20 +114,16 @@ python main_cnn.py \
 
 ### Arguments
 
-* 
-`--seed`: Random seed (default: 43).
+* `--seed`: Random seed (default: 43).
 
 
-* 
-`--num_experts`: Number of experts in the MoE layer (default: 4).
+* `--num_experts`: Number of experts in the MoE layer (default: 4).
 
 
-* 
-`--cls_weight`: Weight for classification loss ().
+* `--cls_weight`: Weight for classification loss ().
 
 
-* 
-`--arc_weight`: Weight for identity ArcFace loss ().
+* `--arc_weight`: Weight for identity ArcFace loss ().
 
 
 
